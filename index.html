@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FAZIL CARROM PRO</title>
+    <style>
+        body { 
+            background: #000; color: white; margin: 0; 
+            display: flex; flex-direction: column; align-items: center;
+            height: 100vh; overflow: hidden; touch-action: none; font-family: sans-serif;
+        }
+        #game-container { 
+            position: relative; width: 95vw; height: 95vw; 
+            max-width: 500px; max-height: 500px;
+            border: 10px solid #5d4037; border-radius: 15px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8); margin-top: 20px;
+        }
+        canvas { 
+            background: radial-gradient(circle, #e0c091 0%, #c19a6b 100%); 
+            width: 100%; height: 100%; display: block; border-radius: 5px;
+        }
+        .controls {
+            margin-top: 20px; display: flex; gap: 10px; width: 90%;
+        }
+        button {
+            flex: 1; padding: 15px; border: none; border-radius: 8px;
+            font-weight: bold; font-size: 16px; cursor: pointer;
+            background: linear-gradient(#ff5722, #e64a19); color: white;
+        }
+    </style>
+</head>
+<body>
+
+<h1 style="color:#e0c091; letter-spacing:5px; margin:10px;">FAZIL CARROM</h1>
+
+<div id="game-container">
+    <canvas id="board" width="800" height="800"></canvas>
+</div>
+
+<div class="controls">
+    <button onclick="resetGame()">RESET BOARD</button>
+</div>
+
+<script>
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+    let striker = { x: 400, y: 680, r: 28, color: '#9c27b0', vx: 0, vy: 0, drag: false };
+    let coins = [];
+
+    function initBoard() {
+        coins = [];
+        // Queen (Red)
+        coins.push({ x: 400, y: 400, r: 22, color: '#f44336', vx: 0, vy: 0 });
+        // Black and White coins in a circle
+        for (let i = 0; i < 6; i++) {
+            let a = (i * 60) * (Math.PI / 180);
+            let color = i % 2 === 0 ? '#ffffff' : '#212121';
+            coins.push({ x: 400 + Math.cos(a) * 55, y: 400 + Math.sin(a) * 55, r: 22, color: color, vx: 0, vy: 0 });
+        }
+    }
+
+    function drawBoardGraphics() {
+        // Outer wood border lines
+        ctx.strokeStyle = "rgba(93, 64, 55, 0.5)";
+        ctx.lineWidth = 15;
+        ctx.strokeRect(40, 40, 720, 720);
+
+        // Inner play lines (The Square)
+        ctx.strokeStyle = "#5d4037";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(120, 120, 560, 560);
+
+        // Center Design (The Rose)
+        ctx.beginPath();
+        ctx.arc(400, 400, 100, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(93, 64, 55, 0.3)";
+        ctx.stroke();
+
+        // Pockets (Shadowy holes)
+        ctx.fillStyle = "#1a1a1a";
+        [50, 750].forEach(x => [50, 750].forEach(y => {
+            ctx.beginPath(); ctx.arc(x, y, 55, 0, Math.PI * 2); ctx.fill();
+        }));
+    }
+
+    function update() {
+        ctx.clearRect(0,0,800,800);
+        drawBoardGraphics();
+
+        [striker, ...coins].forEach(p => {
+            p.x += p.vx; p.y += p.vy;
+            p.vx *= 0.985; p.vy *= 0.985; // Friction
+
+            // Wall Bounce
+            if (p.x < p.r + 40 || p.x > 760 - p.r) p.vx *= -1;
+            if (p.y < p.r + 40 || p.y > 760 - p.r) p.vy *= -1;
+
+            // Draw Piece with 3D shadow effect
+            ctx.shadowBlur = 10; ctx.shadowColor = "rgba(0,0,0,0.5)";
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+            ctx.fillStyle = p.color; ctx.fill();
+            ctx.strokeStyle = "#333"; ctx.lineWidth = 2; ctx.stroke();
+            ctx.shadowBlur = 0;
+        });
+        requestAnimationFrame(update);
+    }
+
+    // Touch Controls
+    canvas.addEventListener('touchstart', e => {
+        const rect = canvas.getBoundingClientRect();
+        const touchX = (e.touches[0].clientX - rect.left) * (800 / rect.width);
+        const touchY = (e.touches[0].clientY - rect.top) * (800 / rect.height);
+        if(Math.hypot(touchX - striker.x, touchY - striker.y) < striker.r * 2) striker.drag = true;
+    });
+
+    canvas.addEventListener('touchend', e => {
+        if(striker.drag) {
+            const rect = canvas.getBoundingClientRect();
+            const endX = (e.changedTouches[0].clientX - rect.left) * (800 / rect.width);
+            const endY = (e.changedTouches[0].clientY - rect.top) * (800 / rect.height);
+            striker.vx = (striker.x - endX) * 0.12;
+            striker.vy = (striker.y - endY) * 0.12;
+            striker.drag = false;
+        }
+    });
+
+    function resetGame() { initBoard(); striker.x = 400; striker.y = 680; striker.vx = 0; striker.vy = 0; }
+    
+    initBoard();
+    update();
+</script>
+</body>
+</html>
